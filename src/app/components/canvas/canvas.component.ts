@@ -449,16 +449,16 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     return `${nodeId}-target-top`;
   }
 
-  getHandleId(nodeId: string | undefined, type: "source" | "target"): string | null {
+  getHandleId(nodeId: string | undefined, type: "source" | "target"): string | undefined {
     if (!nodeId) {
-      return null;
+      return undefined;
     }
 
     const handleId = type === "source"
       ? this.getSourceHandleId(nodeId)
       : this.getTargetHandleId(nodeId);
 
-    return handleId ?? null;
+    return handleId ?? undefined;
   }
 
   private setEdges(edges: Edge[]) {
