@@ -18,7 +18,9 @@ limitations under the License.
   <div class="panel-header">
     <div class="header-glow"></div>
     <div class="panel-title">
-      <span class="spark-icon material-symbols-outlined">auto_awesome</span>
+      <button mat-icon-button class="spark-icon" type="button" disabled>
+        <mat-icon fontIcon="auto_awesome"></mat-icon>
+      </button>
       <div class="title-text">
         <div class="subtitle">Assistant</div>
         <div class="headline">Ask Gemini to build your agent</div>
@@ -43,7 +45,8 @@ limitations under the License.
           <div class="prompt-chips">
             @for (prompt of suggestedPrompts; track prompt) {
               <button mat-stroked-button class="prompt-chip" (click)="userMessage = prompt; sendMessage()">
-                {{ prompt }}
+                <span class="chip-text">{{ prompt }}</span>
+                <mat-icon fontIcon="arrow_outward"></mat-icon>
               </button>
             }
           </div>
@@ -56,18 +59,21 @@ limitations under the License.
           }">
             @if (message.role === 'bot') {
               <button mat-mini-fab class="bot-avatar">
-                <mat-icon>smart_toy</mat-icon>
+                <mat-icon fontIcon="robot_2"></mat-icon>
               </button>
             }
             <mat-card class="message-card">
               @if (message.isLoading) {
                 <div class="loading-message">
-                  <mat-icon class="loading-icon">hourglass_empty</mat-icon>
+                  <mat-icon class="loading-icon" fontIcon="hourglass_empty"></mat-icon>
                   <span>Thinking...</span>
                 </div>
               } @else {
                 <div class="message-metadata">
-                  <span>{{ message.role === 'bot' ? 'Assistant' : 'You' }}</span>
+                  <span>
+                    <mat-icon [fontIcon]="message.role === 'bot' ? 'robot_2' : 'person'"></mat-icon>
+                    {{ message.role === 'bot' ? 'Assistant' : 'You' }}
+                  </span>
                 </div>
                 <div class="message-body">
                   @if (message.role === 'bot') {
@@ -80,7 +86,7 @@ limitations under the License.
             </mat-card>
             @if (message.role === 'user') {
               <button mat-mini-fab class="user-avatar">
-                <mat-icon>person</mat-icon>
+                <mat-icon fontIcon="person"></mat-icon>
               </button>
             }
           </div>
@@ -104,8 +110,9 @@ limitations under the License.
           (click)="sendMessage()"
           [disabled]="!userMessage.trim()"
           class="send-button"
-          matTooltip="Send message">
-          <mat-icon>send</mat-icon>
+          matTooltip="Send message"
+          type="button">
+          <mat-icon fontIcon="send"></mat-icon>
         </button>
       </div>
     </div>
