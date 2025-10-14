@@ -102,6 +102,10 @@
               [id]="getHandleId(ctx.node.id, 'source')"
             />
           </div>
+        } @else if (nodeData?.kind === 'workflow-group-label') {
+          <div class="workflow-group-label" (click)="$event.stopPropagation()">
+            <span class="workflow-group-label__chip">{{nodeData.label}}</span>
+          </div>
         } @else {
           @let nodeName = nodeData?.name || 'root_agent';
           @let toolsMap = toolsMap$ | async;

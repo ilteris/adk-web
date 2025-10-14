@@ -852,3 +852,21 @@
     font-size: 14px;
     font-weight: 500;
 }
+
+:host ::ng-deep .workflow-group-label {
+    pointer-events: none;
+}
+
+:host ::ng-deep .workflow-group-label__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 19, 26, 0.8);
+    border: 1px solid rgba(138, 180, 248, 0.35);
+    color: #e8eaed;
+    border-radius: 16px;
+    font-size: 12px;
+    padding: 4px 10px;
+    text-transform: none;
+    letter-spacing: 0.05em;
+}
