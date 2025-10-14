@@ -61,6 +61,11 @@ export class BuilderAssistantComponent implements OnInit, AfterViewChecked {
 
   userMessage: string = '';
   messages: any[] = [];
+  suggestedPrompts: string[] = [
+    'Show me some sample agents I can build from',
+    'Suggest tools that help with booking travel',
+    'How do I add evaluation callbacks?',
+  ];
   private shouldAutoScroll = false;
 
   @ViewChild('chatMessages') private chatMessages!: ElementRef;

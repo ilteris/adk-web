@@ -16,9 +16,13 @@ limitations under the License.
 
 <div class="builder-assistant-panel" [class.hidden]="!isVisible">
   <div class="panel-header">
+    <div class="header-glow"></div>
     <div class="panel-title">
-      <mat-icon>assistant</mat-icon>
-      <span>Builder Assistant</span>
+      <span class="spark-icon material-symbols-outlined">auto_awesome</span>
+      <div class="title-text">
+        <div class="subtitle">Assistant</div>
+        <div class="headline">Ask Gemini to build your agent</div>
+      </div>
     </div>
     <button
       mat-icon-button
@@ -33,9 +37,16 @@ limitations under the License.
     <div class="chat-messages" #chatMessages>
       @if (messages.length === 0) {
         <div class="assistant-placeholder">
-          <mat-icon class="large-icon">smart_toy</mat-icon>
-          <h3>Assistant Ready</h3>
-          <p>Your builder assistant is ready to help you build agents.</p>
+          <p class="placeholder-body">
+            Ask something to get started or try one of these prompts.
+          </p>
+          <div class="prompt-chips">
+            @for (prompt of suggestedPrompts; track prompt) {
+              <button mat-stroked-button class="prompt-chip" (click)="userMessage = prompt; sendMessage()">
+                {{ prompt }}
+              </button>
+            }
+          </div>
         </div>
       } @else {
         @for (message of messages; track message; let i = $index) {
@@ -55,11 +66,16 @@ limitations under the License.
                   <span>Thinking...</span>
                 </div>
               } @else {
-                @if (message.role === 'bot') {
-                  <markdown class="message-text" [data]="message.text"></markdown>
-                } @else {
-                  <div class="message-text">{{message.text}}</div>
-                }
+                <div class="message-metadata">
+                  <span>{{ message.role === 'bot' ? 'Assistant' : 'You' }}</span>
+                </div>
+                <div class="message-body">
+                  @if (message.role === 'bot') {
+                    <markdown class="message-text" [data]="message.text"></markdown>
+                  } @else {
+                    <div class="message-text">{{message.text}}</div>
+                  }
+                </div>
               }
             </mat-card>
             @if (message.role === 'user') {
@@ -73,27 +89,25 @@ limitations under the License.
     </div>
 
     <div class="chat-input-container">
-      <mat-form-field class="input-field">
-        <mat-label>Ask your assistant...</mat-label>
+      <div class="input-shell">
         <textarea
           class="assistant-input-box"
+          placeholder="Ask Gemini to build your agent"
           matInput
           cdkTextareaAutosize
           cdkAutosizeMinRows="3"
           [(ngModel)]="userMessage"
-          style="caret-color: white; padding-top: 5px"
           (keydown)="onKeyDown($event)"
         ></textarea>
         <button
           mat-icon-button
-          matSuffix
           (click)="sendMessage()"
           [disabled]="!userMessage.trim()"
           class="send-button"
           matTooltip="Send message">
           <mat-icon>send</mat-icon>
         </button>
-      </mat-form-field>
+      </div>
     </div>
   </div>
 </div>
