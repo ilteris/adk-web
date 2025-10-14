@@ -96,6 +96,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   private readonly workflowGroupYOffset = 180;
   private readonly workflowGroupXOffset = -40;
   private readonly workflowInnerNodePoint = { x: 40, y: 80 };
+  private readonly workflowChildSpacing = 140;
 
   private agentNodeBundles = new Map<
     string,
@@ -516,7 +517,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       node.parentId && node.parentId() === groupId && node.data && node.data().name
     );
 
-    const spacingY = 140;
+    const spacingY = this.workflowChildSpacing;
     childAgents.forEach((childAgent, index) => {
       const childNode = childNodes.find(
         (node) => node.data && node.data().name === childAgent.name
@@ -802,6 +803,11 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       shellNode = this.createShellNodeOnly(agentNodeData, baseShellPoint);
       if (parentIsWorkflow && parentBundle?.groupId) {
         shellNode.parentId = signal(parentBundle.groupId);
+        const workflowIndex = subAgentIndex;
+        shellNode.point.set({
+          x: 40,
+          y: 40 + workflowIndex * this.workflowChildSpacing,
+        });
       }
       this.nodes.set([...this.nodes(), shellNode]);
       this.selectedAgents = [shellNode];
