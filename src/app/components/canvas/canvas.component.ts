@@ -66,10 +66,6 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   canvasWorkspaceRef?: ElementRef<HTMLDivElement>;
   private agentBuilderService = inject(AGENT_BUILDER_SERVICE);
   private cdr = inject(ChangeDetectorRef);
-  readonly CONNECTION_HANDLES = {
-    source: "source-bottom",
-    target: "target-top",
-  } as const;
 
   @Input() showSidePanel: boolean = true;
   @Input() showBuilderAssistant: boolean = false;
@@ -377,23 +373,23 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       id: this.generateEdgeId(),
       source,
       target,
-      sourceHandle: this.CONNECTION_HANDLES.source,
-      targetHandle: this.CONNECTION_HANDLES.target,
+      sourceHandle: this.getSourceHandleId(source),
+      targetHandle: this.getTargetHandleId(target),
     };
   }
 
   private ensureStandardHandles(edge: Edge): Edge {
-    if (
-      edge.sourceHandle === this.CONNECTION_HANDLES.source &&
-      edge.targetHandle === this.CONNECTION_HANDLES.target
-    ) {
+    const expectedSource = this.getSourceHandleId(edge.source);
+    const expectedTarget = this.getTargetHandleId(edge.target);
+
+    if (edge.sourceHandle === expectedSource && edge.targetHandle === expectedTarget) {
       return edge;
     }
 
     return {
       ...edge,
-      sourceHandle: edge.sourceHandle ?? this.CONNECTION_HANDLES.source,
-      targetHandle: edge.targetHandle ?? this.CONNECTION_HANDLES.target,
+      sourceHandle: expectedSource,
+      targetHandle: expectedTarget,
     };
   }
 
@@ -401,6 +397,21 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     const existing = this.edges().map((edge) => this.ensureStandardHandles(edge));
     existing.push(this.createEdge(source, target));
     this.edges.set(existing);
+  }
+
+  private getSourceHandleId(nodeId: string): string {
+    return `${nodeId}-source-bottom`;
+  }
+
+  private getTargetHandleId(nodeId: string): string {
+    return `${nodeId}-target-top`;
+  }
+
+  getHandleId(nodeId: string | undefined, type: "source" | "target"): string {
+    if (!nodeId) {
+      return "";
+    }
+    return type === "source" ? this.getSourceHandleId(nodeId) : this.getTargetHandleId(nodeId);
   }
 
   private createNodeBundle(

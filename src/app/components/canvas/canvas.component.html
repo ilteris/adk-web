@@ -91,8 +91,8 @@
                 <span>Parallel Agent</span>
               </button>
             </mat-menu>
-            <handle type="target" position="top" [id]="CONNECTION_HANDLES.target" />
-            <handle type="source" position="bottom" [id]="CONNECTION_HANDLES.source" />
+            <handle type="target" position="top" [id]="getHandleId(ctx.node.id, 'target')" />
+            <handle type="source" position="bottom" [id]="getHandleId(ctx.node.id, 'source')" />
           </div>
         } @else {
           @let nodeName = nodeData?.name || 'root_agent';
@@ -182,10 +182,10 @@
             </div>
           }
           @if (shouldShowHandle(ctx.node, 'target')) {
-            <handle type="target" position="top" [id]="CONNECTION_HANDLES.target" />
+            <handle type="target" position="top" [id]="getHandleId(ctx.node.id, 'target')" />
           }
           @if (shouldShowHandle(ctx.node, 'source')) {
-            <handle type="source" position="bottom" [id]="CONNECTION_HANDLES.source" />
+            <handle type="source" position="bottom" [id]="getHandleId(ctx.node.id, 'source')" />
           }
         </div>
         }
