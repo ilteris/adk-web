@@ -540,7 +540,7 @@ button {
 
 .builder-action-bar {
   position: absolute;
-  top: 20px;
+  top: 0;
   left: 0;
   right: 0;
   display: flex;
@@ -548,6 +548,7 @@ button {
   justify-content: center;
   z-index: 1000;
   pointer-events: none;
+  padding-top: 16px;
 
   .builder-action-left,
   .builder-action-center {
@@ -556,13 +557,16 @@ button {
 
   .builder-action-left {
     position: absolute;
-    left: 20px;
+    top: 0;
+    left: 0;
     display: flex;
+    padding: 0;
   }
 
   .builder-action-center {
     display: flex;
     gap: 12px;
+    padding-top: 16px;
   }
 
   button,
@@ -574,15 +578,17 @@ button {
 
   .builder-assistant-glow {
     position: relative;
-    width: 224px;
-    height: 200px;
+    width: 260px;
+    height: 280px;
     cursor: pointer;
-    border-radius: 120px;
+    border-radius: 0 0 200px 0;
     background:
-      radial-gradient(52.68% 43.55% at 18% -10%, rgba(207, 33, 255, 0.58) 0%, rgba(142, 62, 255, 0) 100%),
-      radial-gradient(60.17% 49.63% at -10% 20%, rgba(207, 33, 255, 0.58) 0%, rgba(142, 62, 255, 0) 100%);
+      radial-gradient(52.68% 43.55% at 15% -25%, rgba(207, 33, 255, 0.58) 0%, rgba(142, 62, 255, 0) 100%),
+      radial-gradient(72% 58% at -5% 22%, rgba(120, 67, 255, 0.75) 0%, rgba(120, 67, 255, 0) 75%),
+      radial-gradient(70% 60% at 65% 20%, rgba(72, 34, 222, 0.55) 0%, rgba(72, 34, 222, 0) 75%);
     opacity: 0.7;
     transition: opacity 0.2s ease, transform 0.2s ease;
+    margin: 0;
 
     &:hover {
       opacity: 1;
@@ -596,11 +602,11 @@ button {
 
     .assistant-spark-icon {
       position: absolute;
-      top: 22px;
-      left: 24px;
+      top: 36px;
+      left: 32px;
       font-size: 36px;
       color: #fefbff;
-      text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+      text-shadow: 0 0 18px rgba(255, 255, 255, 0.7);
     }
   }
 }
