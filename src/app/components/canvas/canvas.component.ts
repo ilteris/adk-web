@@ -369,12 +369,15 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   }
 
   private createEdge(source: string, target: string): Edge {
+    const sourceHandle = this.getSourceHandleId(source);
+    const targetHandle = this.getTargetHandleId(target);
+
     return {
       id: this.generateEdgeId(),
       source,
       target,
-      sourceHandle: this.getSourceHandleId(source),
-      targetHandle: this.getTargetHandleId(target),
+      sourceHandle,
+      targetHandle,
     };
   }
 
@@ -394,24 +397,82 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   }
 
   private appendEdge(source: string, target: string) {
-    const existing = this.edges().map((edge) => this.ensureStandardHandles(edge));
+    const existing = this.normalizeEdges(this.edges());
     existing.push(this.createEdge(source, target));
-    this.edges.set(existing);
+    this.setEdges(existing);
   }
 
-  private getSourceHandleId(nodeId: string): string {
+  private getSourceHandleId(nodeId: string): string | undefined {
+    const node = this.findNodeById(nodeId);
+    if (!node) {
+      return undefined;
+    }
+
+    if (node.parentId && node.parentId()) {
+      return undefined;
+    }
+
     return `${nodeId}-source-bottom`;
   }
 
-  private getTargetHandleId(nodeId: string): string {
+  private getTargetHandleId(nodeId: string): string | undefined {
+    const node = this.findNodeById(nodeId);
+    if (!node) {
+      return undefined;
+    }
+
+    if (node.parentId && node.parentId()) {
+      return undefined;
+    }
+
+    const nodeData = node.data ? node.data() : undefined;
+    const nodeName = nodeData?.name;
+    const isRoot = nodeName ? this.isRootAgent(nodeName) : false;
+
+    if (isRoot) {
+      return undefined;
+    }
+
     return `${nodeId}-target-top`;
   }
 
-  getHandleId(nodeId: string | undefined, type: "source" | "target"): string {
+  getHandleId(nodeId: string | undefined, type: "source" | "target"): string | null {
     if (!nodeId) {
-      return "";
+      return null;
     }
-    return type === "source" ? this.getSourceHandleId(nodeId) : this.getTargetHandleId(nodeId);
+
+    const handleId = type === "source"
+      ? this.getSourceHandleId(nodeId)
+      : this.getTargetHandleId(nodeId);
+
+    return handleId ?? null;
+  }
+
+  private findNodeById(nodeId: string): HtmlTemplateDynamicNode | undefined {
+    return this.nodes().find((node) => node.id === nodeId);
+  }
+
+  private normalizeEdges(edges: Edge[]): Edge[] {
+    return edges.map((edge) => this.ensureStandardHandles(edge));
+  }
+
+  private setEdges(edges: Edge[]) {
+    this.edges.set(this.normalizeEdges(edges));
+  }
+
+  private addPlaceholderBundle(
+    bundle: ReturnType<typeof this.createNodeBundle>
+  ) {
+    if (bundle.placeholderNode && bundle.shellPlaceholderEdge) {
+      this.groupPlaceholders.set([
+        ...this.groupPlaceholders(),
+        bundle.placeholderNode,
+      ]);
+      this.setEdges([
+        ...this.edges(),
+        bundle.shellPlaceholderEdge,
+      ]);
+    }
   }
 
   private createNodeBundle(
@@ -577,7 +638,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       this.groupPlaceholders.set(
         this.groupPlaceholders().filter((node) => node.id !== placeholderId)
       );
-      this.edges.set(
+      this.setEdges(
         this.edges().filter(
           (edge) => edge.target !== placeholderId && edge.source !== placeholderId
         )
@@ -601,19 +662,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       shellNode = bundle.shellNode;
       this.nodes.set([...this.nodes(), bundle.shellNode]);
       this.groupNodes.set([...this.groupNodes(), bundle.groupNode]);
-      if (bundle.placeholderNode && bundle.shellPlaceholderEdge) {
-        this.groupPlaceholders.set([
-          ...this.groupPlaceholders(),
-          bundle.placeholderNode,
-        ]);
-        const existingEdges = this.edges().map((edge) =>
-          this.ensureStandardHandles(edge)
-        );
-        this.edges.set([
-          ...existingEdges,
-          this.ensureStandardHandles(bundle.shellPlaceholderEdge),
-        ]);
-      }
+      this.addPlaceholderBundle(bundle);
       this.agentBuilderService.setSelectedNode(agentNodeData);
       this.selectedAgents = [bundle.shellNode];
       this.selectedNodeId = bundle.shellNode.id;
@@ -899,7 +948,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
           edge.target !== bundle.groupId &&
           edge.source !== bundle.groupId
       );
-      this.edges.set(newEdges);
+      this.setEdges(newEdges);
     } else {
       const shellNodeId = this.nodes().find(
         (node) => node.data && node.data().name === agentNode.name
@@ -915,7 +964,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         const newEdges = this.edges().filter(
           (edge) => edge.target !== shellNodeId && edge.source !== shellNodeId
         );
-        this.edges.set(newEdges);
+        this.setEdges(newEdges);
       }
     }
 
@@ -1481,7 +1530,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     this.nodes.set(shellNodes);
     this.groupNodes.set(groupNodes);
     this.groupPlaceholders.set(placeholderNodes);
-    this.edges.set(edges.map((edge) => this.ensureStandardHandles(edge)));
+    this.setEdges(edges);
   }
 
   switchToAgentToolBoard(agentToolName: string, currentAgentName?: string) {
@@ -1573,7 +1622,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     this.nodes.set([]);
     this.groupNodes.set([]);
     this.groupPlaceholders.set([]);
-    this.edges.set([]);
+    this.setEdges([]);
     this.agentNodeBundles.clear();
 
     this.nodeId = 0;
@@ -1603,9 +1652,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         this.groupNodes.set([bundle.groupNode]);
         if (bundle.placeholderNode && bundle.shellPlaceholderEdge) {
           this.groupPlaceholders.set([bundle.placeholderNode]);
-          this.edges.set([
-            this.ensureStandardHandles(bundle.shellPlaceholderEdge),
-          ]);
+          this.setEdges([bundle.shellPlaceholderEdge]);
         }
       } else {
         const shellNode = this.createShellNodeOnly(agent, shellPoint);
