@@ -565,15 +565,43 @@ button {
     gap: 12px;
   }
 
-  button {
+  button,
+  .builder-assistant-glow {
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
 
-  .builder-assistant-toggle {
-    background: rgba(138, 180, 248, 0.1);
-    border-color: rgba(138, 180, 248, 0.4);
+  .builder-assistant-glow {
+    position: relative;
+    width: 224px;
+    height: 200px;
+    cursor: pointer;
+    border-radius: 120px;
+    background:
+      radial-gradient(52.68% 43.55% at 18% -10%, rgba(207, 33, 255, 0.58) 0%, rgba(142, 62, 255, 0) 100%),
+      radial-gradient(60.17% 49.63% at -10% 20%, rgba(207, 33, 255, 0.58) 0%, rgba(142, 62, 255, 0) 100%);
+    opacity: 0.7;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+      opacity: 1;
+      transform: scale(1.02);
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba(207, 33, 255, 0.8);
+      outline-offset: 4px;
+    }
+
+    .assistant-spark-icon {
+      position: absolute;
+      top: 22px;
+      left: 24px;
+      font-size: 36px;
+      color: #fefbff;
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+    }
   }
 }
 

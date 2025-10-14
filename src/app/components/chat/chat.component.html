@@ -76,10 +76,17 @@
     <div class="builder-action-bar">
       <div class="builder-action-left">
         @if (!showBuilderAssistant) {
-          <button mat-stroked-button class="builder-assistant-toggle" (click)="toggleBuilderAssistant()">
-            <mat-icon>assistant</mat-icon>
-            <span>Builder Assistant</span>
-          </button>
+          <div
+            class="builder-assistant-glow"
+            matTooltip="Open Builder Assistant"
+            (click)="toggleBuilderAssistant()"
+            role="button"
+            tabindex="0"
+            (keydown.enter)="toggleBuilderAssistant()"
+            (keydown.space)="$event.preventDefault(); toggleBuilderAssistant()"
+          >
+            <span class="material-symbols-outlined assistant-spark-icon">auto_awesome</span>
+          </div>
         }
       </div>
       <div class="builder-action-center">
