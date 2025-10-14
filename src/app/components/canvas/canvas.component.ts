@@ -66,6 +66,10 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   canvasWorkspaceRef?: ElementRef<HTMLDivElement>;
   private agentBuilderService = inject(AGENT_BUILDER_SERVICE);
   private cdr = inject(ChangeDetectorRef);
+  readonly CONNECTION_HANDLES = {
+    source: "source-bottom",
+    target: "target-top",
+  } as const;
 
   @Input() showSidePanel: boolean = true;
   @Input() showBuilderAssistant: boolean = false;
@@ -368,6 +372,37 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     return this.edgeId.toString();
   }
 
+  private createEdge(source: string, target: string): Edge {
+    return {
+      id: this.generateEdgeId(),
+      source,
+      target,
+      sourceHandle: this.CONNECTION_HANDLES.source,
+      targetHandle: this.CONNECTION_HANDLES.target,
+    };
+  }
+
+  private ensureStandardHandles(edge: Edge): Edge {
+    if (
+      edge.sourceHandle === this.CONNECTION_HANDLES.source &&
+      edge.targetHandle === this.CONNECTION_HANDLES.target
+    ) {
+      return edge;
+    }
+
+    return {
+      ...edge,
+      sourceHandle: edge.sourceHandle ?? this.CONNECTION_HANDLES.source,
+      targetHandle: edge.targetHandle ?? this.CONNECTION_HANDLES.target,
+    };
+  }
+
+  private appendEdge(source: string, target: string) {
+    const existing = this.edges().map((edge) => this.ensureStandardHandles(edge));
+    existing.push(this.createEdge(source, target));
+    this.edges.set(existing);
+  }
+
   private createNodeBundle(
     agentData: AgentNode,
     shellPoint: { x: number; y: number },
@@ -423,11 +458,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         }),
       };
 
-      placeholderEdge = {
-        id: this.generateEdgeId(),
-        source: shellId,
-        target: placeholderId,
-      };
+      placeholderEdge = this.createEdge(shellId, placeholderId);
     }
 
     if (options?.parentGroupId) {
@@ -564,7 +595,13 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
           ...this.groupPlaceholders(),
           bundle.placeholderNode,
         ]);
-        this.edges.set([...this.edges(), bundle.shellPlaceholderEdge]);
+        const existingEdges = this.edges().map((edge) =>
+          this.ensureStandardHandles(edge)
+        );
+        this.edges.set([
+          ...existingEdges,
+          this.ensureStandardHandles(bundle.shellPlaceholderEdge),
+        ]);
       }
       this.agentBuilderService.setSelectedNode(agentNodeData);
       this.selectedAgents = [bundle.shellNode];
@@ -593,14 +630,8 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     }
 
     // Create an edge connecting the parent to the sub-agent
-    const edge: Edge = {
-      id: this.generateEdgeId(),
-      source: parentNode.id,
-      target: shellNode.id,
-    };
-
     // Add the edge
-    this.edges.set([...this.edges(), edge]);
+    this.appendEdge(parentNode.id, shellNode.id);
 
     // Auto-select the newly created sub-agent and switch to Config tab
     this.agentBuilderService.setSelectedNode(agentNodeData);
@@ -1418,12 +1449,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       }
 
       if (parentShellId) {
-        const edge: Edge = {
-          id: this.generateEdgeId(),
-          source: parentShellId,
-          target: shellNode.id,
-        };
-        edges.push(edge);
+        edges.push(this.createEdge(parentShellId, shellNode.id));
       }
 
       if (agentData.sub_agents && agentData.sub_agents.length > 0) {
@@ -1444,7 +1470,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     this.nodes.set(shellNodes);
     this.groupNodes.set(groupNodes);
     this.groupPlaceholders.set(placeholderNodes);
-    this.edges.set(edges);
+    this.edges.set(edges.map((edge) => this.ensureStandardHandles(edge)));
   }
 
   switchToAgentToolBoard(agentToolName: string, currentAgentName?: string) {
@@ -1566,7 +1592,9 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         this.groupNodes.set([bundle.groupNode]);
         if (bundle.placeholderNode && bundle.shellPlaceholderEdge) {
           this.groupPlaceholders.set([bundle.placeholderNode]);
-          this.edges.set([bundle.shellPlaceholderEdge]);
+          this.edges.set([
+            this.ensureStandardHandles(bundle.shellPlaceholderEdge),
+          ]);
         }
       } else {
         const shellNode = this.createShellNodeOnly(agent, shellPoint);
