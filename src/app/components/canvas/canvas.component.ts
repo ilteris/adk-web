@@ -1138,10 +1138,6 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     const nodeName = nodeData?.name;
     const isRoot = nodeName ? this.isRootAgent(nodeName) : false;
 
-    if (node.parentId && node.parentId()) {
-      return false;
-    }
-
     if (position === "target") {
       return !isRoot;
     }
