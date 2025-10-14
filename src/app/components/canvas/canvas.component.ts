@@ -402,54 +402,24 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     this.setEdges(existing);
   }
 
-  private getSourceHandleId(nodeId: string): string | undefined {
-    const node = this.findNodeById(nodeId);
-    if (!node) {
-      return undefined;
-    }
-
-    if (node.parentId && node.parentId()) {
-      return undefined;
-    }
-
+  private getSourceHandleId(nodeId: string): string {
     return `${nodeId}-source-bottom`;
   }
 
-  private getTargetHandleId(nodeId: string): string | undefined {
-    const node = this.findNodeById(nodeId);
-    if (!node) {
-      return undefined;
-    }
-
-    if (node.parentId && node.parentId()) {
-      return undefined;
-    }
-
-    const nodeData = node.data ? node.data() : undefined;
-    const nodeName = nodeData?.name;
-    const isRoot = nodeName ? this.isRootAgent(nodeName) : false;
-
-    if (isRoot) {
-      return undefined;
-    }
-
+  private getTargetHandleId(nodeId: string): string {
     return `${nodeId}-target-top`;
   }
 
-  getHandleId(nodeId: string | undefined, type: "source" | "target"): string | null {
+  getHandleId(nodeId: string | undefined, type: "source" | "target"): string | undefined {
     if (!nodeId) {
-      return null;
+      return undefined;
     }
 
     const handleId = type === "source"
       ? this.getSourceHandleId(nodeId)
       : this.getTargetHandleId(nodeId);
 
-    return handleId ?? null;
-  }
-
-  private findNodeById(nodeId: string): HtmlTemplateDynamicNode | undefined {
-    return this.nodes().find((node) => node.id === nodeId);
+    return handleId;
   }
 
   private normalizeEdges(edges: Edge[]): Edge[] {
