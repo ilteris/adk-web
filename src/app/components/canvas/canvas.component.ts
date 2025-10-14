@@ -488,6 +488,44 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     }
   }
 
+  private organizeWorkflowGroup(parentAgent: AgentNode) {
+    const bundle = this.agentNodeBundles.get(parentAgent.name);
+    if (!bundle) {
+      return;
+    }
+
+    const groupId = bundle.groupId;
+    const childAgents = parentAgent.sub_agents ?? [];
+    const childNodes = this.nodes().filter((node) =>
+      node.parentId && node.parentId() === groupId && node.data && node.data().name
+    );
+
+    const spacingY = 140;
+    childAgents.forEach((childAgent, index) => {
+      const childNode = childNodes.find(
+        (node) => node.data && node.data().name === childAgent.name
+      );
+      if (!childNode) {
+        return;
+      }
+      childNode.point.set({ x: 40, y: 40 + index * spacingY });
+    });
+
+    const placeholder = this.groupPlaceholders().find(
+      (node) => node.parentId && node.parentId() === groupId
+    );
+    if (placeholder) {
+      placeholder.point.set({ x: 40, y: 40 + childAgents.length * spacingY });
+    }
+
+    const groupNode = this.groupNodes().find((node) => node.id === groupId);
+    if (groupNode) {
+      const minHeight = this.workflowGroupHeight;
+      const requiredHeight = 160 + childAgents.length * spacingY;
+      groupNode.height.set(Math.max(minHeight, requiredHeight));
+    }
+  }
+
   private createNodeBundle(
     agentData: AgentNode,
     shellPoint: { x: number; y: number },
@@ -681,7 +719,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       this.selectedNodeId = bundle.shellNode.id;
     } else {
       const baseShellPoint = parentIsWorkflow
-        ? { x: 40 + subAgentIndex * 200, y: 40 }
+        ? { x: 40, y: 40 }
         : shellPoint;
 
       shellNode = this.createShellNodeOnly(agentNodeData, baseShellPoint);
@@ -700,6 +738,9 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       : undefined;
     if (!!parentAgentNode) {
       parentAgentNode.sub_agents.push(agentNodeData);
+      if (parentIsWorkflow) {
+        this.organizeWorkflowGroup(parentAgentNode);
+      }
     }
 
     // Create an edge connecting the parent to the sub-agent
