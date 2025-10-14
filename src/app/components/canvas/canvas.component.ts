@@ -369,31 +369,44 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   }
 
   private createEdge(source: string, target: string): Edge {
-    const sourceHandle = this.getSourceHandleId(source);
-    const targetHandle = this.getTargetHandleId(target);
-
-    return {
+    const edge: Edge = {
       id: this.generateEdgeId(),
       source,
       target,
-      sourceHandle,
-      targetHandle,
     };
+
+    const sourceHandle = this.getSourceHandleId(source);
+    if (sourceHandle) {
+      edge.sourceHandle = sourceHandle;
+    }
+
+    const targetHandle = this.getTargetHandleId(target);
+    if (targetHandle) {
+      edge.targetHandle = targetHandle;
+    }
+
+    return edge;
   }
 
   private ensureStandardHandles(edge: Edge): Edge {
     const expectedSource = this.getSourceHandleId(edge.source);
     const expectedTarget = this.getTargetHandleId(edge.target);
 
-    if (edge.sourceHandle === expectedSource && edge.targetHandle === expectedTarget) {
-      return edge;
+    const normalized: Edge = { ...edge };
+
+    if (expectedSource) {
+      normalized.sourceHandle = expectedSource;
+    } else {
+      delete normalized.sourceHandle;
     }
 
-    return {
-      ...edge,
-      sourceHandle: expectedSource,
-      targetHandle: expectedTarget,
-    };
+    if (expectedTarget) {
+      normalized.targetHandle = expectedTarget;
+    } else {
+      delete normalized.targetHandle;
+    }
+
+    return normalized;
   }
 
   private appendEdge(source: string, target: string) {
@@ -402,32 +415,62 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     this.setEdges(existing);
   }
 
-  private getSourceHandleId(nodeId: string): string {
+  private getSourceHandleId(nodeId: string): string | null {
+    const node = this.findNodeById(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    if (node.parentId && node.parentId()) {
+      return null;
+    }
+
     return `${nodeId}-source-bottom`;
   }
 
-  private getTargetHandleId(nodeId: string): string {
+  private getTargetHandleId(nodeId: string): string | null {
+    const node = this.findNodeById(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    if (node.parentId && node.parentId()) {
+      return null;
+    }
+
+    const nodeData = node.data ? node.data() : undefined;
+    const nodeName = nodeData?.name;
+    const isRoot = nodeName ? this.isRootAgent(nodeName) : false;
+
+    if (isRoot) {
+      return null;
+    }
+
     return `${nodeId}-target-top`;
   }
 
-  getHandleId(nodeId: string | undefined, type: "source" | "target"): string | undefined {
+  getHandleId(nodeId: string | undefined, type: "source" | "target"): string | null {
     if (!nodeId) {
-      return undefined;
+      return null;
     }
 
     const handleId = type === "source"
       ? this.getSourceHandleId(nodeId)
       : this.getTargetHandleId(nodeId);
 
-    return handleId;
+    return handleId ?? null;
+  }
+
+  private setEdges(edges: Edge[]) {
+    this.edges.set(this.normalizeEdges(edges));
   }
 
   private normalizeEdges(edges: Edge[]): Edge[] {
     return edges.map((edge) => this.ensureStandardHandles(edge));
   }
 
-  private setEdges(edges: Edge[]) {
-    this.edges.set(this.normalizeEdges(edges));
+  private findNodeById(nodeId: string): HtmlTemplateDynamicNode | undefined {
+    return this.nodes().find((node) => node.id === nodeId);
   }
 
   private addPlaceholderBundle(

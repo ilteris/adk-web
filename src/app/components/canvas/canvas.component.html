@@ -94,12 +94,12 @@
             <handle
               type="target"
               position="top"
-              [id]="getHandleId(ctx.node.id, 'target')"
+              [attr.id]="getHandleId(ctx.node.id, 'target')"
             />
             <handle
               type="source"
               position="bottom"
-              [id]="getHandleId(ctx.node.id, 'source')"
+              [attr.id]="getHandleId(ctx.node.id, 'source')"
             />
           </div>
         } @else {
@@ -193,14 +193,14 @@
             <handle
               type="target"
               position="top"
-              [id]="getHandleId(ctx.node.id, 'target')"
+              [attr.id]="getHandleId(ctx.node.id, 'target')"
             />
           }
           @if (shouldShowHandle(ctx.node, 'source')) {
             <handle
               type="source"
               position="bottom"
-              [id]="getHandleId(ctx.node.id, 'source')"
+              [attr.id]="getHandleId(ctx.node.id, 'source')"
             />
           }
         </div>
