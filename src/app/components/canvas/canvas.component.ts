@@ -508,6 +508,8 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       return;
     }
 
+    const isRoot = parentAgent.isRoot || this.isRootAgent(parentAgent.name);
+
     const groupId = bundle.groupId;
     const childAgents = parentAgent.sub_agents ?? [];
     const childNodes = this.nodes().filter((node) =>
@@ -537,6 +539,16 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       const minHeight = this.workflowGroupHeight;
       const requiredHeight = 160 + childAgents.length * spacingY;
       groupNode.height.set(Math.max(minHeight, requiredHeight));
+
+      const rootPadding = isRoot ? 140 : 60;
+      const baseYOffset = isRoot ? 60 : this.workflowGroupYOffset;
+      const newYOffset = baseYOffset;
+      const groupPoint = {
+        x: bundle.shellId ? (this.findNodeById(bundle.shellId)?.point().x ?? 0) + this.workflowGroupXOffset : groupNode.point().x,
+        y: bundle.shellId ? (this.findNodeById(bundle.shellId)?.point().y ?? 0) + newYOffset : groupNode.point().y,
+      };
+      groupNode.point.set(groupPoint);
+      groupNode.height.set(Math.max(minHeight, requiredHeight + rootPadding));
     }
 
     if (bundle.labelId) {
@@ -547,6 +559,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
           ...current,
           label: this.composeWorkflowLabel(parentAgent, childAgents.length),
         });
+        labelNode.point.set({ x: 16, y: isRoot ? -48 : -32 });
       }
     }
   }
