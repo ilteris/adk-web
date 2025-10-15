@@ -577,8 +577,9 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     const isRootWorkflow = parentAgent.isRoot || this.isRootAgent(parentAgent.name);
 
     let offsetY = 40;
+    const childSpacing = this.workflowChildSpacing;
 
-    childAgents.forEach((child) => {
+    childAgents.forEach((child, index) => {
       const childShellNode = this.nodes().find(
         (node) => node.data && node.data().name === child.name
       );
@@ -593,8 +594,6 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       }
 
       childShellNode.point.set({ x: 40, y: offsetY });
-
-      let blockHeight = this.workflowChildSpacing;
 
       if (this.isWorkflowAgent(child.agent_class)) {
         const childBundle = this.agentNodeBundles.get(child.name);
@@ -613,11 +612,6 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
               x: childShellNode.point().x + this.workflowGroupXOffset,
               y: childShellNode.point().y + this.workflowGroupYOffset,
             });
-
-            blockHeight = Math.max(
-              blockHeight,
-              childGroupNode.height() + this.workflowGroupYOffset + 40,
-            );
           }
 
           if (childBundle.labelId) {
@@ -628,6 +622,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
               } else if (childLabel.parentId() !== childBundle.groupId) {
                 childLabel.parentId.set(childBundle.groupId);
               }
+              childLabel.point.set({ x: 16, y: -32 });
             }
           }
 
@@ -635,7 +630,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         }
       }
 
-      offsetY += blockHeight;
+      offsetY += childSpacing;
     });
 
     const placeholderNode = bundle.placeholderId
@@ -663,7 +658,6 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     if (bundle.labelId) {
       const labelNode = this.groupLabels().find((node) => node.id === bundle.labelId);
       if (labelNode && labelNode.data) {
-        const labelData = labelNode.data();
         if (!labelNode.parentId) {
           labelNode.parentId = signal(groupId);
         } else if (labelNode.parentId() !== groupId) {
@@ -671,11 +665,12 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         }
         labelNode.point.set({ x: 16, y: isRootWorkflow ? -48 : -32 });
         labelNode.data.set({
-          ...labelData,
+          ...labelNode.data(),
           label: this.composeWorkflowLabel(parentAgent, childAgents.length),
         });
       }
     }
+  }
   }
 
   private composeWorkflowLabel(agent: AgentNode, childCount?: number): string {
