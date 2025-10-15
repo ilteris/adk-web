@@ -570,127 +570,112 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       return;
     }
 
-    const isRoot = parentAgent.isRoot || this.isRootAgent(parentAgent.name);
-
     const groupId = bundle.groupId;
+    const groupNode = this.groupNodes().find((node) => node.id === groupId);
+    const shellNode = this.findNodeById(bundle.shellId);
     const childAgents = parentAgent.sub_agents ?? [];
-    const childNodes = this.nodes().filter((node) =>
-      node.parentId && node.parentId() === groupId && node.data && node.data().name
-    );
-    const nonWorkflowChildren = childAgents.filter((child) => !this.isWorkflowAgent(child.agent_class));
-    const workflowChildren = childAgents.filter((child) => this.isWorkflowAgent(child.agent_class));
+    const isRootWorkflow = parentAgent.isRoot || this.isRootAgent(parentAgent.name);
 
-    const spacingY = this.workflowChildSpacing;
-    nonWorkflowChildren.forEach((childAgent, index) => {
-      const childNode = childNodes.find(
-        (node) => node.data && node.data().name === childAgent.name
+    let offsetY = 40;
+
+    childAgents.forEach((child) => {
+      const childShellNode = this.nodes().find(
+        (node) => node.data && node.data().name === child.name
       );
-      if (!childNode) {
+      if (!childShellNode) {
         return;
       }
-      if (!childNode.parentId) {
-        childNode.parentId = signal(bundle.groupId);
-      } else if (childNode.parentId() !== bundle.groupId) {
-        childNode.parentId.set(bundle.groupId);
+
+      if (!childShellNode.parentId) {
+        childShellNode.parentId = signal(groupId);
+      } else if (childShellNode.parentId() !== groupId) {
+        childShellNode.parentId.set(groupId);
       }
-      childNode.point.set({ x: 40, y: 40 + index * spacingY });
+
+      childShellNode.point.set({ x: 40, y: offsetY });
+
+      let blockHeight = this.workflowChildSpacing;
+
+      if (this.isWorkflowAgent(child.agent_class)) {
+        const childBundle = this.agentNodeBundles.get(child.name);
+        if (childBundle) {
+          const childGroupNode = this.groupNodes().find(
+            (node) => node.id === childBundle.groupId
+          );
+          if (childGroupNode) {
+            if (!childGroupNode.parentId) {
+              childGroupNode.parentId = signal(groupId);
+            } else if (childGroupNode.parentId() !== groupId) {
+              childGroupNode.parentId.set(groupId);
+            }
+
+            childGroupNode.point.set({
+              x: childShellNode.point().x + this.workflowGroupXOffset,
+              y: childShellNode.point().y + this.workflowGroupYOffset,
+            });
+
+            blockHeight = Math.max(
+              blockHeight,
+              childGroupNode.height() + this.workflowGroupYOffset + 40,
+            );
+          }
+
+          if (childBundle.labelId) {
+            const childLabel = this.groupLabels().find((node) => node.id === childBundle.labelId);
+            if (childLabel) {
+              if (!childLabel.parentId) {
+                childLabel.parentId = signal(childBundle.groupId);
+              } else if (childLabel.parentId() !== childBundle.groupId) {
+                childLabel.parentId.set(childBundle.groupId);
+              }
+            }
+          }
+
+          this.organizeWorkflowGroup(child);
+        }
+      }
+
+      offsetY += blockHeight;
     });
 
-    const placeholder = this.groupPlaceholders().find(
-      (node) => node.parentId && node.parentId() === groupId
-    );
-    if (placeholder) {
-      placeholder.point.set({ x: 40, y: 40 + nonWorkflowChildren.length * spacingY });
+    const placeholderNode = bundle.placeholderId
+      ? this.groupPlaceholders().find((node) => node.id === bundle.placeholderId)
+      : undefined;
+    if (placeholderNode) {
+      if (!placeholderNode.parentId) {
+        placeholderNode.parentId = signal(groupId);
+      } else if (placeholderNode.parentId() !== groupId) {
+        placeholderNode.parentId.set(groupId);
+      }
+      placeholderNode.point.set({ x: 40, y: offsetY });
     }
 
-    const groupNode = this.groupNodes().find((node) => node.id === groupId);
-    if (groupNode) {
+    if (groupNode && shellNode) {
+      const padding = isRootWorkflow ? 140 : 60;
       const minHeight = this.workflowGroupHeight;
-      const requiredHeight = 160 + nonWorkflowChildren.length * spacingY;
-      const rootPadding = isRoot ? 140 : 60;
-      const baseYOffset = isRoot ? 60 : this.workflowGroupYOffset;
-
-      const shellNode = this.findNodeById(bundle.shellId);
-      const shellParent = shellNode?.parentId ? this.groupNodes().find((node) => node.id === shellNode.parentId!()) : undefined;
-      const parentX = shellParent ? shellParent.point().x : shellNode ? shellNode.point().x : groupNode.point().x;
-      const parentY = shellParent ? shellParent.point().y : shellNode ? shellNode.point().y : groupNode.point().y;
-
-      const groupPoint = {
-        x: parentX + this.workflowGroupXOffset,
-        y: (shellParent ? parentY : shellNode?.point().y ?? groupNode.point().y) + baseYOffset,
-      };
-      groupNode.point.set(groupPoint);
-      groupNode.height.set(Math.max(minHeight, requiredHeight + rootPadding));
+      groupNode.height.set(Math.max(minHeight, offsetY + padding));
+      groupNode.point.set({
+        x: shellNode.point().x + this.workflowGroupXOffset,
+        y: shellNode.point().y + (isRootWorkflow ? 60 : this.workflowGroupYOffset),
+      });
     }
 
     if (bundle.labelId) {
       const labelNode = this.groupLabels().find((node) => node.id === bundle.labelId);
       if (labelNode && labelNode.data) {
-        const current = labelNode.data();
+        const labelData = labelNode.data();
+        if (!labelNode.parentId) {
+          labelNode.parentId = signal(groupId);
+        } else if (labelNode.parentId() !== groupId) {
+          labelNode.parentId.set(groupId);
+        }
+        labelNode.point.set({ x: 16, y: isRootWorkflow ? -48 : -32 });
         labelNode.data.set({
-          ...current,
-          label: this.composeWorkflowLabel(parentAgent, nonWorkflowChildren.length + workflowChildren.length),
+          ...labelData,
+          label: this.composeWorkflowLabel(parentAgent, childAgents.length),
         });
-        labelNode.point.set({ x: 16, y: isRoot ? -48 : -32 });
       }
     }
-
-    if (!groupNode) {
-      return;
-    }
-
-    const parentGroupNode = groupNode;
-    const baseX = parentGroupNode.point().x - this.workflowGroupXOffset;
-    let currentWorkflowTop = parentGroupNode.point().y + parentGroupNode.height() + this.workflowGroupMargin;
-
-    workflowChildren.forEach((child) => {
-      const childBundle = this.agentNodeBundles.get(child.name);
-      if (!childBundle) {
-        return;
-      }
-
-      const childShellNode = this.findNodeById(childBundle.shellId);
-      if (childShellNode) {
-        if (childShellNode.parentId) {
-          childShellNode.parentId.set(null);
-        } else {
-          childShellNode.parentId = signal<string | null>(null);
-        }
-        childShellNode.point.set({
-          x: baseX,
-          y: currentWorkflowTop,
-        });
-      }
-
-      const childGroupNode = this.groupNodes().find((node) => node.id === childBundle.groupId);
-      let groupHeight = this.workflowGroupHeight;
-      if (childGroupNode) {
-        if (childGroupNode.parentId) {
-          childGroupNode.parentId.set(null);
-        } else {
-          childGroupNode.parentId = signal<string | null>(null);
-        }
-        groupHeight = childGroupNode.height();
-        childGroupNode.point.set({
-          x: baseX + this.workflowGroupXOffset,
-          y: currentWorkflowTop + this.workflowGroupYOffset,
-        });
-      }
-
-      if (childBundle.labelId) {
-        const childLabel = this.groupLabels().find((node) => node.id === childBundle.labelId);
-        if (childLabel) {
-          if (childLabel.parentId) {
-            childLabel.parentId.set(null);
-          } else {
-            childLabel.parentId = signal<string | null>(null);
-          }
-          childLabel.point.set({ x: 16, y: -32 });
-        }
-      }
-
-      currentWorkflowTop += groupHeight + this.workflowGroupMargin;
-    });
   }
 
   private composeWorkflowLabel(agent: AgentNode, childCount?: number): string {
@@ -700,9 +685,6 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   }
 
   private getWorkflowDisplayName(agent: AgentNode): string {
-    if (agent.name && agent.name.trim()) {
-      return agent.name.trim();
-    }
     if (agent.agent_class) {
       const className = agent.agent_class
         .replace(/Agent$/i, '')
@@ -711,6 +693,9 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       if (className.trim()) {
         return className.trim();
       }
+    }
+    if (agent.name && agent.name.trim()) {
+      return agent.name.trim();
     }
     return 'Workflow';
   }
