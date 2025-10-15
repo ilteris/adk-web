@@ -96,6 +96,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   private readonly workflowGroupYOffset = 180;
   private readonly workflowGroupXOffset = -40;
   private readonly workflowInnerNodePoint = { x: 40, y: 80 };
+  private readonly workflowGroupMargin = 120;
   private readonly workflowChildSpacing = 140;
 
   private agentNodeBundles = new Map<
@@ -573,40 +574,56 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
 
     const parentGroupNode = groupNode;
     const workflowChildren = childAgents.filter((child) => this.isWorkflowAgent(child.agent_class));
+    const baseX = parentGroupNode.point().x - this.workflowGroupXOffset;
+    let currentWorkflowTop = parentGroupNode.point().y + parentGroupNode.height() + this.workflowGroupMargin;
 
-    workflowChildren.forEach((child, wfIndex) => {
+    workflowChildren.forEach((child) => {
       const childBundle = this.agentNodeBundles.get(child.name);
       if (!childBundle) {
         return;
       }
 
       const childShellNode = this.findNodeById(childBundle.shellId);
-      const childIndex = childAgents.indexOf(child);
       if (childShellNode) {
-        childShellNode.parentId = signal(groupId);
+        if (childShellNode.parentId) {
+          childShellNode.parentId.set(undefined);
+        } else {
+          childShellNode.parentId = signal(undefined);
+        }
         childShellNode.point.set({
-          x: 40,
-          y: 40 + childIndex * spacingY,
+          x: baseX,
+          y: currentWorkflowTop,
         });
       }
 
       const childGroupNode = this.groupNodes().find((node) => node.id === childBundle.groupId);
+      let groupHeight = this.workflowGroupHeight;
       if (childGroupNode) {
-        const margin = 60;
-        const baseY = parentGroupNode.point().y + parentGroupNode.height() + margin;
-        const offsetY = baseY + wfIndex * (childGroupNode.height() + margin);
+        if (childGroupNode.parentId) {
+          childGroupNode.parentId.set(undefined);
+        } else {
+          childGroupNode.parentId = signal(undefined);
+        }
+        groupHeight = childGroupNode.height();
         childGroupNode.point.set({
-          x: parentGroupNode.point().x + this.workflowGroupXOffset,
-          y: offsetY,
+          x: baseX + this.workflowGroupXOffset,
+          y: currentWorkflowTop + this.workflowGroupYOffset,
         });
       }
 
       if (childBundle.labelId) {
         const childLabel = this.groupLabels().find((node) => node.id === childBundle.labelId);
         if (childLabel) {
+          if (childLabel.parentId) {
+            childLabel.parentId.set(undefined);
+          } else {
+            childLabel.parentId = signal(undefined);
+          }
           childLabel.point.set({ x: 16, y: -32 });
         }
       }
+
+      currentWorkflowTop += groupHeight + this.workflowGroupMargin;
     });
   }
 
@@ -635,7 +652,12 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   private createNodeBundle(
     agentData: AgentNode,
     shellPoint: { x: number; y: number },
-    options?: { parentGroupId?: string; order?: number; includePlaceholder?: boolean }
+    options?: {
+      parentGroupId?: string;
+      attachToParentGroup?: boolean;
+      order?: number;
+      includePlaceholder?: boolean;
+    }
   ): {
     shellNode: HtmlTemplateDynamicNode;
     groupNode: DefaultDynamicGroupNode;
@@ -703,7 +725,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       placeholderEdge = this.createEdge(shellId, placeholderId);
     }
 
-    if (options?.parentGroupId) {
+    if (options?.parentGroupId && options.attachToParentGroup !== false) {
       const parentGroupId = options.parentGroupId;
       const sequenceIndex = options.order ?? 0;
       const localShellPoint = {
@@ -825,11 +847,28 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     let shellNode: HtmlTemplateDynamicNode;
 
     if (isWorkflow) {
-      const bundle = this.createNodeBundle(agentNodeData, shellPoint, {
+      let workflowShellPoint = shellPoint;
+      let attachToGroup = true;
+      if (parentIsWorkflow && parentBundle) {
+        const parentGroupNode = this.groupNodes().find(
+          (node) => node.id === parentBundle.groupId
+        );
+        if (parentGroupNode) {
+          workflowShellPoint = {
+            x: parentGroupNode.point().x - this.workflowGroupXOffset,
+            y:
+              parentGroupNode.point().y +
+              parentGroupNode.height() +
+              this.workflowGroupMargin,
+          };
+          attachToGroup = false;
+        }
+      }
+
+      const bundle = this.createNodeBundle(agentNodeData, workflowShellPoint, {
         parentGroupId:
-          parentIsWorkflow && !parentHadPlaceholder
-            ? parentBundle?.groupId
-            : undefined,
+          parentIsWorkflow && attachToGroup ? parentBundle?.groupId : undefined,
+        attachToParentGroup: attachToGroup,
         order: subAgentIndex,
       });
       shellNode = bundle.shellNode;
@@ -1669,6 +1708,8 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         const includePlaceholder =
           (agentData.sub_agents?.length ?? 0) === 0;
         const bundle = this.createNodeBundle(agentData, shellPoint, {
+          parentGroupId: parentIsWorkflow ? parentBundle?.groupId : undefined,
+          attachToParentGroup: !parentIsWorkflow,
           order: parentAgent?.sub_agents.indexOf(agentData) ?? index,
           includePlaceholder,
         });
