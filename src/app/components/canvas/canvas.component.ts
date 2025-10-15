@@ -579,7 +579,10 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     let offsetY = 40;
     const childSpacing = this.workflowChildSpacing;
 
-    childAgents.forEach((child, index) => {
+    const nonWorkflowChildren = childAgents.filter((child) => !this.isWorkflowAgent(child.agent_class));
+    const workflowChildren = childAgents.filter((child) => this.isWorkflowAgent(child.agent_class));
+
+    nonWorkflowChildren.forEach((child, index) => {
       const childShellNode = this.nodes().find(
         (node) => node.data && node.data().name === child.name
       );
@@ -594,42 +597,6 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       }
 
       childShellNode.point.set({ x: 40, y: offsetY });
-
-      if (this.isWorkflowAgent(child.agent_class)) {
-        const childBundle = this.agentNodeBundles.get(child.name);
-        if (childBundle) {
-          const childGroupNode = this.groupNodes().find(
-            (node) => node.id === childBundle.groupId
-          );
-          if (childGroupNode) {
-            if (!childGroupNode.parentId) {
-              childGroupNode.parentId = signal(groupId);
-            } else if (childGroupNode.parentId() !== groupId) {
-              childGroupNode.parentId.set(groupId);
-            }
-
-            childGroupNode.point.set({
-              x: childShellNode.point().x + this.workflowGroupXOffset,
-              y: childShellNode.point().y + this.workflowGroupYOffset,
-            });
-          }
-
-          if (childBundle.labelId) {
-            const childLabel = this.groupLabels().find((node) => node.id === childBundle.labelId);
-            if (childLabel) {
-              if (!childLabel.parentId) {
-                childLabel.parentId = signal(childBundle.groupId);
-              } else if (childLabel.parentId() !== childBundle.groupId) {
-                childLabel.parentId.set(childBundle.groupId);
-              }
-              childLabel.point.set({ x: 16, y: -32 });
-            }
-          }
-
-          this.organizeWorkflowGroup(child);
-        }
-      }
-
       offsetY += childSpacing;
     });
 
@@ -670,6 +637,73 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         });
       }
     }
+
+    if (!groupNode || !shellNode) {
+      return;
+    }
+
+    const baseX = shellNode.point().x;
+    let nextWorkflowTop = groupNode.point().y + groupNode.height() + this.workflowGroupMargin;
+
+    workflowChildren.forEach((child) => {
+      const childBundle = this.agentNodeBundles.get(child.name);
+      if (!childBundle) {
+        return;
+      }
+
+      const childShellNode = this.findNodeById(childBundle.shellId);
+      const childGroupNode = this.groupNodes().find((node) => node.id === childBundle.groupId);
+
+      const childShellPoint = {
+        x: baseX,
+        y: nextWorkflowTop,
+      };
+
+      if (childShellNode) {
+        if (!childShellNode.parentId) {
+          childShellNode.parentId = signal<string | null>(null);
+        } else if (childShellNode.parentId()) {
+          childShellNode.parentId.set(null);
+        }
+        childShellNode.point.set(childShellPoint);
+      }
+
+      let blockHeight = this.workflowChildSpacing;
+      if (childGroupNode) {
+        if (!childGroupNode.parentId) {
+          childGroupNode.parentId = signal<string | null>(null);
+        } else if (childGroupNode.parentId()) {
+          childGroupNode.parentId.set(null);
+        }
+        childGroupNode.point.set({
+          x: childShellPoint.x + this.workflowGroupXOffset,
+          y: childShellPoint.y + this.workflowGroupYOffset,
+        });
+        blockHeight = Math.max(
+          blockHeight,
+          childGroupNode.height() + this.workflowGroupYOffset + 40,
+        );
+      }
+
+      if (childBundle.labelId) {
+        const childLabel = this.groupLabels().find((node) => node.id === childBundle.labelId);
+        if (childLabel) {
+          if (!childLabel.parentId) {
+            childLabel.parentId = signal<string | null>(null);
+          } else if (childLabel.parentId()) {
+            childLabel.parentId.set(null);
+          }
+          childLabel.point.set({
+            x: (childGroupNode ? childGroupNode.point().x : childShellPoint.x) + 16,
+            y: (childGroupNode ? childGroupNode.point().y : childShellPoint.y) - 32,
+          });
+        }
+      }
+
+      nextWorkflowTop += blockHeight + this.workflowGroupMargin;
+
+      this.organizeWorkflowGroup(child);
+    });
   }
   }
 
