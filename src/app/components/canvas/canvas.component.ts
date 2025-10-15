@@ -696,10 +696,13 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
   private composeWorkflowLabel(agent: AgentNode, childCount?: number): string {
     const name = this.getWorkflowDisplayName(agent);
     const count = childCount ?? agent.sub_agents?.length ?? 0;
-    return `${name} • ${count}`;
+    return count > 0 ? `${name} • ${count}` : name;
   }
 
   private getWorkflowDisplayName(agent: AgentNode): string {
+    if (agent.name && agent.name.trim()) {
+      return agent.name.trim();
+    }
     if (agent.agent_class) {
       const className = agent.agent_class
         .replace(/Agent$/i, '')
@@ -708,9 +711,6 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       if (className.trim()) {
         return className.trim();
       }
-    }
-    if (agent.name && agent.name.trim()) {
-      return agent.name.trim();
     }
     return 'Workflow';
   }
