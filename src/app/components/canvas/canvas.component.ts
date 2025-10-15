@@ -539,14 +539,17 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     if (groupNode) {
       const minHeight = this.workflowGroupHeight;
       const requiredHeight = 160 + childAgents.length * spacingY;
-      groupNode.height.set(Math.max(minHeight, requiredHeight));
-
       const rootPadding = isRoot ? 140 : 60;
       const baseYOffset = isRoot ? 60 : this.workflowGroupYOffset;
-      const newYOffset = baseYOffset;
+
+      const shellNode = this.findNodeById(bundle.shellId);
+      const shellParent = shellNode?.parentId ? this.groupNodes().find((node) => node.id === shellNode.parentId!()) : undefined;
+      const parentX = shellParent ? shellParent.point().x : shellNode ? shellNode.point().x : groupNode.point().x;
+      const parentY = shellParent ? shellParent.point().y : shellNode ? shellNode.point().y : groupNode.point().y;
+
       const groupPoint = {
-        x: bundle.shellId ? (this.findNodeById(bundle.shellId)?.point().x ?? 0) + this.workflowGroupXOffset : groupNode.point().x,
-        y: bundle.shellId ? (this.findNodeById(bundle.shellId)?.point().y ?? 0) + newYOffset : groupNode.point().y,
+        x: parentX + this.workflowGroupXOffset,
+        y: (shellParent ? parentY : shellNode?.point().y ?? groupNode.point().y) + baseYOffset,
       };
       groupNode.point.set(groupPoint);
       groupNode.height.set(Math.max(minHeight, requiredHeight + rootPadding));
@@ -563,6 +566,48 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         labelNode.point.set({ x: 16, y: isRoot ? -48 : -32 });
       }
     }
+
+    if (!groupNode) {
+      return;
+    }
+
+    const parentGroupNode = groupNode;
+    const workflowChildren = childAgents.filter((child) => this.isWorkflowAgent(child.agent_class));
+
+    workflowChildren.forEach((child, wfIndex) => {
+      const childBundle = this.agentNodeBundles.get(child.name);
+      if (!childBundle) {
+        return;
+      }
+
+      const childShellNode = this.findNodeById(childBundle.shellId);
+      const childIndex = childAgents.indexOf(child);
+      if (childShellNode) {
+        childShellNode.parentId = signal(groupId);
+        childShellNode.point.set({
+          x: 40,
+          y: 40 + childIndex * spacingY,
+        });
+      }
+
+      const childGroupNode = this.groupNodes().find((node) => node.id === childBundle.groupId);
+      if (childGroupNode) {
+        const margin = 60;
+        const baseY = parentGroupNode.point().y + parentGroupNode.height() + margin;
+        const offsetY = baseY + wfIndex * (childGroupNode.height() + margin);
+        childGroupNode.point.set({
+          x: parentGroupNode.point().x + this.workflowGroupXOffset,
+          y: offsetY,
+        });
+      }
+
+      if (childBundle.labelId) {
+        const childLabel = this.groupLabels().find((node) => node.id === childBundle.labelId);
+        if (childLabel) {
+          childLabel.point.set({ x: 16, y: -32 });
+        }
+      }
+    });
   }
 
   private composeWorkflowLabel(agent: AgentNode, childCount?: number): string {
