@@ -588,6 +588,11 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       if (!childNode) {
         return;
       }
+      if (!childNode.parentId) {
+        childNode.parentId = signal(bundle.groupId);
+      } else if (childNode.parentId() !== bundle.groupId) {
+        childNode.parentId.set(bundle.groupId);
+      }
       childNode.point.set({ x: 40, y: 40 + index * spacingY });
     });
 
