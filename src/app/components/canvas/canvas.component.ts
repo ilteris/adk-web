@@ -586,9 +586,9 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       const childShellNode = this.findNodeById(childBundle.shellId);
       if (childShellNode) {
         if (childShellNode.parentId) {
-          childShellNode.parentId.set(undefined);
+          childShellNode.parentId.set(null);
         } else {
-          childShellNode.parentId = signal(undefined);
+          childShellNode.parentId = signal<string | null>(null);
         }
         childShellNode.point.set({
           x: baseX,
@@ -600,9 +600,9 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       let groupHeight = this.workflowGroupHeight;
       if (childGroupNode) {
         if (childGroupNode.parentId) {
-          childGroupNode.parentId.set(undefined);
+          childGroupNode.parentId.set(null);
         } else {
-          childGroupNode.parentId = signal(undefined);
+          childGroupNode.parentId = signal<string | null>(null);
         }
         groupHeight = childGroupNode.height();
         childGroupNode.point.set({
@@ -615,9 +615,9 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         const childLabel = this.groupLabels().find((node) => node.id === childBundle.labelId);
         if (childLabel) {
           if (childLabel.parentId) {
-            childLabel.parentId.set(undefined);
+            childLabel.parentId.set(null);
           } else {
-            childLabel.parentId = signal(undefined);
+            childLabel.parentId = signal<string | null>(null);
           }
           childLabel.point.set({ x: 16, y: -32 });
         }
