@@ -44,6 +44,7 @@
       [edges]="edges()"
       [background]="{ type: 'dots', color: '#424242', size: 1, gap: 12 }"
       [snapGrid]="[12, 12]"
+      [alignmentHelper]="true"
     >
       <ng-template #nodeTemplate let-ctx nodeHtml>
         @let nodeData = ctx.node.data?.();
