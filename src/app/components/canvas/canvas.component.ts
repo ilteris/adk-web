@@ -577,9 +577,11 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     const childNodes = this.nodes().filter((node) =>
       node.parentId && node.parentId() === groupId && node.data && node.data().name
     );
+    const nonWorkflowChildren = childAgents.filter((child) => !this.isWorkflowAgent(child.agent_class));
+    const workflowChildren = childAgents.filter((child) => this.isWorkflowAgent(child.agent_class));
 
     const spacingY = this.workflowChildSpacing;
-    childAgents.forEach((childAgent, index) => {
+    nonWorkflowChildren.forEach((childAgent, index) => {
       const childNode = childNodes.find(
         (node) => node.data && node.data().name === childAgent.name
       );
@@ -593,13 +595,13 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       (node) => node.parentId && node.parentId() === groupId
     );
     if (placeholder) {
-      placeholder.point.set({ x: 40, y: 40 + childAgents.length * spacingY });
+      placeholder.point.set({ x: 40, y: 40 + nonWorkflowChildren.length * spacingY });
     }
 
     const groupNode = this.groupNodes().find((node) => node.id === groupId);
     if (groupNode) {
       const minHeight = this.workflowGroupHeight;
-      const requiredHeight = 160 + childAgents.length * spacingY;
+      const requiredHeight = 160 + nonWorkflowChildren.length * spacingY;
       const rootPadding = isRoot ? 140 : 60;
       const baseYOffset = isRoot ? 60 : this.workflowGroupYOffset;
 
@@ -622,7 +624,7 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
         const current = labelNode.data();
         labelNode.data.set({
           ...current,
-          label: this.composeWorkflowLabel(parentAgent, childAgents.length),
+          label: this.composeWorkflowLabel(parentAgent, nonWorkflowChildren.length + workflowChildren.length),
         });
         labelNode.point.set({ x: 16, y: isRoot ? -48 : -32 });
       }
@@ -633,7 +635,6 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
     }
 
     const parentGroupNode = groupNode;
-    const workflowChildren = childAgents.filter((child) => this.isWorkflowAgent(child.agent_class));
     const baseX = parentGroupNode.point().x - this.workflowGroupXOffset;
     let currentWorkflowTop = parentGroupNode.point().y + parentGroupNode.height() + this.workflowGroupMargin;
 
