@@ -23,6 +23,7 @@
     "@angular/platform-browser": "^19.1.0",
     "@angular/platform-browser-dynamic": "^19.1.0",
     "@angular/router": "^19.1.0",
+    "@dagrejs/dagre": "^1.0.3",
     "@codemirror/lang-python": "^6.2.1",
     "@codemirror/lint": "^6.8.5",
     "@viz-js/viz": "^3.12.0",

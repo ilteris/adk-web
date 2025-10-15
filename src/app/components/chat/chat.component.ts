@@ -1127,6 +1127,10 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     this.showSidePanel = true;
   }
 
+  autoLayoutCanvas() {
+    this.canvasComponent()?.autoLayout();
+  }
+
   closeSidePanel() {
     if (!this.showSidePanel) {
       return;

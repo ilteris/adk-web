@@ -22,6 +22,7 @@ import { AgentService } from '../../core/services/agent.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { Vflow, HtmlTemplateDynamicNode, Edge, DefaultDynamicGroupNode } from 'ngx-vflow';
+import { graphlib, layout as dagreLayout } from '@dagrejs/dagre';
 import { MatIcon } from '@angular/material/icon';
 import { MatChip, MatChipSet } from '@angular/material/chips';
 import { MatTooltip } from '@angular/material/tooltip';
@@ -145,6 +146,65 @@ export class CanvasComponent implements AfterViewInit, OnInit, OnChanges {
       this.selectedTool = tool;
     });
 
+  }
+
+  private getNodeDimensions(node: HtmlTemplateDynamicNode): {width: number; height: number} {
+    const nodeData = node.data ? node.data() : undefined;
+    const isWorkflow = nodeData ? this.isWorkflowAgent(nodeData.agent_class) : false;
+    if (isWorkflow) {
+      return { width: this.workflowGroupWidth + 80, height: this.workflowGroupHeight + 120 };
+    }
+    return { width: 320, height: 120 };
+  }
+
+  autoLayout(direction: 'TB' | 'LR' = 'TB') {
+    const graph = new graphlib.Graph({ multigraph: true });
+    graph.setGraph({ rankdir: direction, ranksep: 220, nodesep: 160, marginx: 40, marginy: 40 });
+    graph.setDefaultEdgeLabel(() => ({}));
+
+    const allNodes = this.nodes();
+    const topLevelNodes = allNodes.filter((node) => !node.parentId || node.parentId() === null);
+
+    topLevelNodes.forEach((node) => {
+      const dimensions = this.getNodeDimensions(node);
+      graph.setNode(node.id, { width: dimensions.width, height: dimensions.height });
+    });
+
+    this.edges().forEach((edge) => {
+      if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
+        graph.setEdge(edge.source, edge.target);
+      }
+    });
+
+    dagreLayout(graph);
+
+    topLevelNodes.forEach((node) => {
+      const dagreNode = graph.node(node.id);
+      if (!dagreNode) {
+        return;
+      }
+      node.point.set({
+        x: Math.max(40, dagreNode.x - dagreNode.width / 2),
+        y: Math.max(40, dagreNode.y - dagreNode.height / 2),
+      });
+    });
+
+    const rootAgent = this.agentBuilderService.getRootNode();
+    if (rootAgent) {
+      this.organizeWorkflowGroup(rootAgent);
+    }
+
+    topLevelNodes.forEach((node) => {
+      if (!node.data) {
+        return;
+      }
+      const agentNode = this.agentBuilderService.getNode(node.data().name);
+      if (agentNode && this.isWorkflowAgent(agentNode.agent_class)) {
+        this.organizeWorkflowGroup(agentNode);
+      }
+    });
+
+    this.cdr.markForCheck();
   }
 
   ngOnInit() {
