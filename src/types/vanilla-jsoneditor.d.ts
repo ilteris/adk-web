@@ -13,6 +13,7 @@ declare module 'vanilla-jsoneditor' {
     navigationBar?: boolean;
     statusBar?: boolean;
     onChange?: (updated: { content: JSONEditorContent }) => void;
+    mainMenuBar?: boolean;
   }
 
   interface JSONEditorOptions {
